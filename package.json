@@ -1,19 +1,24 @@
 {
-    "name": "chrome-esg-blocker",
-    "private": true,
-    "scripts": {
-        "lint": "oxlint --fix && oxfmt",
-        "test": "bun test",
-        "dev": "bun --watch src/index.ts"
-    },
-    "dependencies": {
-        "@types/bun": "^1.4.2",
-        "es-toolkit": "^1.52.0",
-        "kill-port-process": "^4.0.2",
-        "lefthook": "^2.1.14",
-        "lodash": "^4.18.1",
-        "oxfmt": "^0.68.0",
-        "oxlint": "^1.83.0",
-        "typescript": "^7.0.2"
-    }
+	"name": "chrome-esg-blocker",
+	"private": true,
+	"scripts": {
+		"build": "bun scripts/build.ts",
+		"dev": "bun scripts/build.ts --watch",
+		"lint": "oxlint --fix && oxfmt",
+		"check": "bun run build && tsc --noEmit && oxlint",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@types/bun": "^1.4.2",
+		"es-toolkit": "^1.52.0",
+		"kill-port-process": "^4.0.2",
+		"lefthook": "^2.1.14",
+		"lodash": "^4.18.1",
+		"oxfmt": "^0.68.0",
+		"oxlint": "^1.83.0",
+		"typescript": "^7.0.2"
+	},
+	"devDependencies": {
+		"happy-dom": "^20.14.5"
+	}
 }

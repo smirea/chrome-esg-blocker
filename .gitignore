@@ -18,3 +18,5 @@ dist
 
 # other
 .DS_Store
+
+src/rules.generated.ts
