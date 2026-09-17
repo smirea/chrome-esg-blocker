@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from 'bun:test';
 import { Window } from 'happy-dom';
 import { start } from '../src/engine';
+import { earlyCss } from '../src/styles';
 import flights from '../rules/google-flights';
 import maps from '../rules/google-maps';
 
@@ -18,8 +19,12 @@ function load(html: string, path: string) {
 	return page.document;
 }
 
-const blocked = (doc: Window['document'], selector: string) =>
-	Boolean(doc.querySelector(selector)?.closest('[data-esg-blocker-hidden]'));
+const blocked = (doc: Window['document'], selector: string) => {
+	for (let element = doc.querySelector(selector); element; element = element.parentElement) {
+		if (page.getComputedStyle(element).display === 'none') return true;
+	}
+	return false;
+};
 const settle = () => new Promise(resolve => setTimeout(resolve, 160));
 
 test('Flights collapses emissions columns and detail rows without hiding the flight or amenities', () => {
@@ -73,4 +78,45 @@ test('Rechecks lazy content and recycled nodes, and restores content after SPA n
 	page.history.pushState({}, '', '/search?q=coffee');
 	await new Promise(resolve => setTimeout(resolve, 650));
 	expect(blocked(doc, '#new')).toBe(false);
+});
+
+test('CSS hides newly inserted flight content immediately without waiting for the observer', () => {
+	const doc = load('<main id="results"></main>', 'travel/flights');
+	doc.querySelector('#results')!.innerHTML =
+		'<div class="y0NSEe" id="late"><div data-co2currentflight="123">123 kg CO2e</div></div>';
+	expect(blocked(doc, '#late')).toBe(true);
+	expect(doc.querySelector('#late')!.hasAttribute('data-esg-blocker-hidden')).toBe(false);
+});
+
+test('Starts before the document element exists and hides subsequently parsed content', async () => {
+	page = new Window({ url: 'https://www.google.com/travel/flights' });
+	page.document.documentElement.remove();
+	stop = start([flights, maps], page.document as unknown as Document, page as unknown as typeof window);
+	const root = page.document.createElement('html');
+	root.innerHTML = '<head></head><body><div data-co2currentflight="123" id="parsed">123 kg CO2e</div></body>';
+	page.document.append(root);
+	await settle();
+	expect(blocked(page.document, '#parsed')).toBe(true);
+	expect(page.document.querySelectorAll('#esg-blocker-style').length).toBe(1);
+});
+
+test('Pre-render stylesheet hides content before JS and stops applying on unrelated SPA routes', async () => {
+	page = new Window({ url: 'https://www.google.com/travel/flights' });
+	const doc = page.document;
+	const early = doc.createElement('style');
+	early.textContent = earlyCss(flights);
+	doc.head.append(early);
+	doc.body.innerHTML = '<div data-co2currentflight="123" id="emissions">123 kg CO2e</div>';
+	expect(blocked(doc, '#emissions')).toBe(true);
+	stop = start([flights], doc as unknown as Document, page as unknown as typeof window);
+	expect(blocked(doc, '#emissions')).toBe(true);
+	page.history.pushState({}, '', '/search');
+	await new Promise(resolve => setTimeout(resolve, 650));
+	const element = doc.querySelector('#emissions')!;
+	// Check the root gate directly; Happy DOM caches descendant selector matches.
+	expect(doc.documentElement.matches(':root:not([data-esg-blocker-ready])')).toBe(false);
+	const runtimeStyle = doc.querySelector('style#esg-blocker-style') as import('happy-dom').HTMLStyleElement;
+	for (const rule of runtimeStyle.sheet!.cssRules) {
+		expect(element.matches((rule as unknown as CSSStyleRule).selectorText)).toBe(false);
+	}
 });

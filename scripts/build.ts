@@ -2,6 +2,7 @@ import { watch } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Rule } from '../src/rule';
 import { matchUrl } from '../src/rule';
+import { earlyCss } from '../src/styles';
 
 const root = resolve(import.meta.dir, '..');
 
@@ -32,19 +33,27 @@ async function build() {
 		minify: true,
 	});
 	if (!result.success) throw new AggregateError(result.logs, 'Build failed');
+	for (const [index, rule] of rules.entries()) {
+		await Bun.write(`${root}/dist/rule-${index}.css`, earlyCss(rule));
+	}
 	await Bun.write(
 		`${root}/dist/manifest.json`,
 		JSON.stringify(
 			{
 				manifest_version: 3,
 				name: 'ESG Blocker',
-				version: '0.1.0',
+				version: '0.1.1',
 				description: 'Hide ESG badges and emissions panels on supported websites.',
 				content_scripts: [
+					...rules.map((rule, index) => ({
+						matches: rule.matches,
+						css: [`rule-${index}.css`],
+						run_at: 'document_start',
+					})),
 					{
 						matches: [...new Set(rules.flatMap(rule => rule.matches))],
 						js: ['content.js'],
-						run_at: 'document_idle',
+						run_at: 'document_start',
 					},
 				],
 			},

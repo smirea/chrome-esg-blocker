@@ -32,7 +32,7 @@ export default {
 | `collapse-empty` | Hide a section only when it contains at least one `items` match and every item is hidden by these rules. Keeps mixed sections. Runs after hide operations; order nested cleanup from inner to outer.                    |
 | `style`          | Supply `css` to repair layout, such as removing a fixed grid track after hiding a column. CSS is active only on matching URLs. Scope every selector to the affected component.                                          |
 
-`hide` uses a `data-esg-blocker-hidden` attribute and `display: none !important`. It does not delete nodes or rewrite text. The engine rechecks DOM changes, restores recycled elements that no longer match, and updates rules on SPA navigation. Keep selectors independent of the extension's hidden attribute so they remain stable on repeated runs. Attribute-only badges should use `attribute: 'aria-label'`.
+`hide` without `text` or `closest` compiles to CSS injected before rendering. Prefer CSS selectors using stable attributes and `:has()` over text regexes when possible. JavaScript handles the remaining operations at `document_start`, batches DOM updates with `requestAnimationFrame`, and uses `data-esg-blocker-hidden` with `display: none !important`. The initial stylesheet stops applying once JavaScript installs the current route's styles, preventing rules from leaking across SPA navigation. It does not delete nodes or rewrite text. The engine rechecks DOM changes, restores recycled elements that no longer match, and updates rules on SPA navigation. Keep selectors independent of the extension's hidden attribute so they remain stable on repeated runs. Attribute-only badges should use `attribute: 'aria-label'`.
 
 # Finding targets in a website
 

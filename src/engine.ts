@@ -1,4 +1,5 @@
 import { matchUrl, type Rule } from './rule';
+import { readyAttribute, ruleCss, staticSelectors } from './styles';
 
 const hiddenAttribute = 'data-esg-blocker-hidden';
 const hiddenSelector = `[${hiddenAttribute}]`;
@@ -7,8 +8,11 @@ export function start(rules: Rule[], doc = document, win = window) {
 	const style = doc.createElement('style');
 	style.id = 'esg-blocker-style';
 	let hidden = new Set<Element>();
-	let timer: ReturnType<typeof setTimeout> | undefined;
+	let frame: number | undefined;
 	let href = '';
+	let active: Rule[] = [];
+	let selectors: string[] = [];
+	let stylesheet = '';
 	const reported = new Set<string>();
 
 	function report(id: string, error: unknown) {
@@ -18,22 +22,27 @@ export function start(rules: Rule[], doc = document, win = window) {
 	}
 
 	function apply() {
-		timer = undefined;
+		frame = undefined;
 		observer.disconnect();
 		try {
-			href = win.location.href;
+			if (!doc.documentElement) return;
+			if (href !== win.location.href) {
+				href = win.location.href;
+				active = rules.filter(rule => rule.matches.some(pattern => matchUrl(pattern, href)));
+				selectors = active.flatMap(staticSelectors);
+				stylesheet = [`${hiddenSelector} { display: none !important; }`, ...active.map(ruleCss)].join('\n');
+			}
 			const next = new Set<Element>();
-			const css = [`${hiddenSelector} { display: none !important; }`];
 			const cleanup: Array<{ selector: string; items: string; id: string }> = [];
-			for (const rule of rules) {
+			for (const rule of active) {
 				try {
-					if (!rule.matches.some(pattern => matchUrl(pattern, href))) continue;
 					for (const operation of rule.operations) {
 						if (operation.type === 'style') {
-							css.push(operation.css);
+							continue;
 						} else if (operation.type === 'collapse-empty') {
 							cleanup.push({ ...operation, id: rule.id });
 						} else {
+							if (!operation.text && !operation.closest) continue;
 							for (const element of doc.querySelectorAll(operation.selector)) {
 								if (operation.text) {
 									operation.text.lastIndex = 0;
@@ -53,7 +62,7 @@ export function start(rules: Rule[], doc = document, win = window) {
 			}
 			const isBlocked = (item: Element) => {
 				for (let node: Element | null = item; node; node = node.parentElement) {
-					if (next.has(node)) return true;
+					if (next.has(node) || selectors.some(selector => node!.matches(selector))) return true;
 				}
 				return false;
 			};
@@ -74,11 +83,11 @@ export function start(rules: Rule[], doc = document, win = window) {
 				if (!element.hasAttribute(hiddenAttribute)) element.setAttribute(hiddenAttribute, '');
 			}
 			hidden = next;
-			const stylesheet = css.join('\n');
 			if (style.textContent !== stylesheet) style.textContent = stylesheet;
 			if (!style.isConnected) (doc.head ?? doc.documentElement).append(style);
+			if (!doc.documentElement.hasAttribute(readyAttribute)) doc.documentElement.setAttribute(readyAttribute, '');
 		} finally {
-			observer.observe(doc.documentElement, {
+			observer.observe(doc, {
 				childList: true,
 				subtree: true,
 				characterData: true,
@@ -88,7 +97,7 @@ export function start(rules: Rule[], doc = document, win = window) {
 	}
 
 	function schedule() {
-		timer ??= setTimeout(apply, 80);
+		frame ??= win.requestAnimationFrame(apply);
 	}
 
 	// Disconnect during our own mutations to avoid an observer feedback loop.
@@ -102,7 +111,7 @@ export function start(rules: Rule[], doc = document, win = window) {
 
 	return () => {
 		observer.disconnect();
-		clearTimeout(timer);
+		if (frame !== undefined) win.cancelAnimationFrame(frame);
 		clearInterval(navigation);
 		win.removeEventListener('popstate', schedule);
 		win.removeEventListener('hashchange', schedule);

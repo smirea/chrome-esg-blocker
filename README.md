@@ -5,6 +5,8 @@ A local Chrome extension that hides political, social-cause, and environmental b
 - **Flights:** removes the CO2e column, average/percentage emissions comparisons, emissions filter and sort option, and emissions/contrail rows in expanded flight details.
 - **Maps:** removes ownership and identity badges from results, place information, and About attributes. Empty badge rows and sections disappear with their headings. Mixed sections retain their other attributes.
 
+CSS rules load before the page renders. JavaScript starts at `document_start` and handles text matching and empty-section cleanup before the next paint, with no fixed delay. Selector-only rules use the browser's CSS engine instead of repeated JavaScript DOM scans.
+
 Rules hide entire layout elements with `display: none`, so adjacent content can use the space. The page keeps its DOM nodes and event handlers. Updates apply as results load and as you navigate within the site.
 
 Business names, reviews, descriptions, prices, schedules, accessibility, food options, and amenities remain intact. This is a set of site-specific rules, not a classifier for every political phrase or image on the web. Google's DOM changes and other languages will need additional rules.
