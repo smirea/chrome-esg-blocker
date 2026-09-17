@@ -1,0 +1,19 @@
+{
+    "name": "chrome-esg-blocker",
+    "private": true,
+    "scripts": {
+        "lint": "oxlint --fix && oxfmt",
+        "test": "bun test",
+        "dev": "bun --watch src/index.ts"
+    },
+    "dependencies": {
+        "@types/bun": "^1.4.2",
+        "es-toolkit": "^1.52.0",
+        "kill-port-process": "^4.0.2",
+        "lefthook": "^2.1.14",
+        "lodash": "^4.18.1",
+        "oxfmt": "^0.68.0",
+        "oxlint": "^1.83.0",
+        "typescript": "^7.0.2"
+    }
+}
