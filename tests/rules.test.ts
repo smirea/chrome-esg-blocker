@@ -47,6 +47,20 @@ test('Flights collapses emissions columns and detail rows without hiding the fli
 	for (const id of ['flight', 'schedule', 'price', 'wifi']) expect(blocked(doc, `#${id}`)).toBe(false);
 });
 
+test('Flights hides the tree-equivalent CO2e badge under the airline without hiding the flight summary', () => {
+	// Google served this badge only to some sessions; the fixture mirrors the observed .OgQvJf > .KhL0De > .Ir0Voe row summary.
+	const doc = load(
+		`<ul><li class="pIav2d" id="flight"><div class="OgQvJf"><div class="KhL0De"><div class="Ir0Voe" id="times-column">
+        <div class="zxVSec" id="times">2:25 PM – 4:08 PM</div>
+        <div class="sSHqwe" id="airline"><span>American</span></div>
+        <div id="badge"><span>Avoids as much CO2e as <b>2,557 trees absorb in a day</b></span><button aria-label="More info"><svg></svg></button></div>
+        </div><div class="U3gSDe" id="price">$610</div></div></div></li></ul>`,
+		'travel/flights?q=test',
+	);
+	expect(blocked(doc, '#badge')).toBe(true);
+	for (const id of ['flight', 'times-column', 'times', 'airline', 'price']) expect(blocked(doc, `#${id}`)).toBe(false);
+});
+
 test('Maps removes badges and empty headings, preserving mixed sections and product attributes', () => {
 	const doc = load(
 		`<article id="business"><h2>Women-owned Coffee</h2>
