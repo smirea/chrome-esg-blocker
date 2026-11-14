@@ -27,10 +27,6 @@ export default {
 			selector: '[role="option"], [role="menuitem"], [role="menuitemradio"]',
 			text: /^(?:CO2 emissions|Emissions|Lowest emissions)$/i,
 		},
-		{
-			type: 'hide',
-			selector: 'li.pIav2d .OgQvJf *',
-			text: /^Avoids as much CO2e? as\b/i,
-		},
+		{ type: 'hide', selector: 'div:has(> [role="button"][data-co2-kgs])' },
 	],
 } satisfies Rule;
