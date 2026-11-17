@@ -10,6 +10,8 @@ test('Rule URL patterns match the same URLs as Chrome content-script match patte
 		['https://*/foo*', 'https://www.google.com/foo', true],
 		['https://*/foo*', 'https://example.com/foo/bar.html', true],
 		['https://*/foo*', 'https://example.com/bar/foo', false],
+		['https://*/foo*bar', 'https://example.com/foo?q=bar', true],
+		['https://*/foo*bar', 'https://example.com/foo#bar', false],
 		['https://*.google.com/foo*bar', 'https://www.google.com/foo/baz/bar', true],
 		['https://*.google.com/foo*bar', 'https://docs.google.com/foobar', true],
 		['https://*.google.com/*', 'https://google.com/', true],
